@@ -1,0 +1,8 @@
+Flask
+Flask-Login
+Flask-SQLAlchemy
+Flask-Mail
+requests
+PyMySQL
+Werkzeug
+cryptography
