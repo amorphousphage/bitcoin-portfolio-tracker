@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h2>Edit Transaction</h2>
+
+        <form method="POST" action="{{ url_for('main.edit_transaction', transaction_id=transaction.id) }}">
+            <!-- Date and Time Picker (same as in create) -->
+            <div class="mb-3">
+                <label for="date_time" class="form-label">Transaction Date and Time:</label>
+                <input type="datetime-local" id="date_time" name="date_time" class="form-control" 
+                       value="{{ transaction.datetime.strftime('%Y-%m-%dT%H:%M') }}" required>
+            </div>
+
+            <!-- Select Wallet -->
+            <div class="mb-3">
+                <label for="wallet" class="form-label">Select Wallet:</label>
+                <select id="wallet" name="wallet" class="form-control">
+                    <option value="">Select a wallet</option>
+                    {% for wallet in wallets %}
+                        <option value="{{ wallet.id }}" {% if wallet.id == transaction.wallet_id %}selected{% endif %}>
+                            {{ wallet.wallet_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <p style="font-size: 12px;"> In case you wish to transfer sats from one wallet to another, record two transactions:</p>
+                <p style="font-size: 12px;"> One as "Spend" and one as "Earn". Both transactions should have "Transfer" written in the notes to be excluded from tax calculations.</p>
+            </div>
+
+            <!-- Transaction Type -->
+            <div class="mb-3">
+                <label for="type" class="form-label">Transaction Type:</label>
+                <select id="type" name="type" class="form-control">
+                    <option value="buy" {% if transaction.type == 'buy' %}selected{% endif %}>Buy</option>
+                    <option value="sell" {% if transaction.type == 'sell' %}selected{% endif %}>Sell</option>
+                    <option value="earn" {% if transaction.type == 'earn' %}selected{% endif %}>Earn</option>
+                    <option value="spend" {% if transaction.type == 'spend' %}selected{% endif %}>Spend</option>
+                </select>
+            </div>
+
+            <!-- Amount in Sats -->
+            <div class="mb-3">
+                <label for="sats" class="form-label">Amount (Sats):</label>
+                <input type="number" id="sats" name="sats" class="form-control" value="{{ transaction.sats }}" required>
+            </div>
+
+            <!-- Amount in Fiat -->
+            <div class="mb-3">
+                <label for="fiat_amount" class="form-label">Amount (Fiat):</label>
+                <input type="number" step="0.01" id="fiat_amount" name="fiat_amount" class="form-control" 
+                       value="{{ transaction.fiat_amount }}" required>
+            </div>
+
+            <!-- Notes (optional) -->
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes:</label>
+                <textarea id="notes" name="notes" class="form-control" rows="3">{{ transaction.notes }}</textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+{% endblock %}

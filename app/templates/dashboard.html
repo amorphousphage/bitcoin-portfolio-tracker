@@ -1,0 +1,534 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div style="text-align: right;">
+        <a href="{{ url_for('main.logout') }}" style="color: white;">Logout</a>
+    </div>
+    
+    <!-- Fiat Currency Selection -->
+    <form method="POST" id="updateFiatForm" action="{{ url_for('main.dashboard') }}" style="margin-bottom: 20px;">
+        <label for="fiat">Select Fiat Currency:</label>
+        <select id="fiat" name="fiat" class="form-control w-25">
+            <option value="USD" {% if selected_fiat == 'USD' %}selected{% endif %}>USD</option>
+            <option value="EUR" {% if selected_fiat == 'EUR' %}selected{% endif %}>EUR</option>
+            <option value="CHF" {% if selected_fiat == 'CHF' %}selected{% endif %}>CHF</option>
+            <option value="GBP" {% if selected_fiat == 'GBP' %}selected{% endif %}>GBP</option>
+        </select>
+        <button type="submit" class="btn btn-primary mt-2">Update</button>
+    </form>
+
+    <div class="d-flex align-items-center mb-3">
+        <span class="me-2">BTC Price Chart</span> 
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="toggleView">
+        </div>
+        <span class="ms-2">Portfolio Overview</span>
+    </div>
+
+    <!-- Bitcoin Price Chart -->
+    <div class="container mt-4" id="chartContainer">
+        <div id="price-info">
+            <p><strong>Current Price (1 BTC):</strong> <span id="current-price"></span></p>
+            <p><strong>24h Change:</strong> <span id="percentage-change"></span></p>
+            <p><strong>Visible Range Change:</strong> <span id="visible-range-change"></span></p>
+            <p><small>* time is considered from 1 am to 1 am of the start and end dates</small></p>
+        </div>
+        <canvas id="btcChart"></canvas>
+    </div>
+    <!-- Date Range slider-->
+    <div id="sliderContainer">
+        <div id="visibleDateRange">Visible Range: </div>
+        <div id="slider"></div>
+    </div>
+    <div id ="zoomButtonContainer">
+        <button id="zoomLastDay" class="btn btn-primary mt-2">Last Day</button>
+        <button id="zoomLastMonth" class="btn btn-primary mt-2">Last 30 Days</button>
+        <button id="zoomLast6Months" class="btn btn-primary mt-2">Last 6 Months</button>
+        <button id="zoomLastYear" class="btn btn-primary mt-2">Last Year</button>
+    </div>
+
+    <!-- Portfolio Overview Section (Initially Hidden) -->
+    <div id="portfolioOverview" style="display: none;">
+        <ul class="list-group">
+            <li class="list-group-item">
+                <strong>Current Portfolio Worth:</strong> <span id="portfolio-worth"></span>
+            </li>
+            <li class="list-group-item">
+                <strong>24h Change:</strong> <span id="24hrs-change"></span>
+            </li>
+            <li class="list-group-item">
+                <strong>Unrealized Gain/Loss:</strong> <span id="unrealized-gain"></span>
+            </li>
+            <li class="list-group-item">
+                <strong>Realized Gain/Loss:</strong> <span id="realized-gain"></span>
+            </li>
+            <li class="list-group-item">
+                <strong>Average Buy Price:</strong> <span id="average-buy-price"></span>
+            </li>
+        </ul>
+    </div>
+    <script>
+       document.getElementById("updateFiatForm").addEventListener("submit", function(event) {
+            // Clear the btcData from localStorage
+            localStorage.removeItem("btcData");
+
+            // Clear the btcData array in memory
+            btcData = [];
+
+            // You can then re-fetch the data
+            //fetchBTCPrice("all");
+        });
+
+
+        document.getElementById('toggleView').addEventListener('change', function () {
+            const isPortfolioView = this.checked;
+            document.getElementById('chartContainer').style.display = isPortfolioView ? 'none' : 'block';
+            document.getElementById('sliderContainer').style.display = isPortfolioView ? 'none' : 'block';
+            document.getElementById('zoomButtonContainer').style.display = isPortfolioView ? 'none' : 'block';
+            document.getElementById('portfolioOverview').style.display = isPortfolioView ? 'block' : 'none';
+            if (!this.checked) {  
+                startChartCalculation(); // Recalculate BTC chart when switching back
+            } else {
+                fetch("/api/get_transactions")
+                    .then(response => response.json())
+                    .then(data => {
+                        let portfolioValues = calculatePortfolio(data);
+                        
+                        const formattedPercentageChange = portfolioValues.change24h >= 0 
+                            ? `+${portfolioValues.change24h.toFixed(2)}%` 
+                            : `${portfolioValues.change24h.toFixed(2)}%`;
+                        document.getElementById('24hrs-change').style.color = portfolioValues.change24h >= 0 ? 'green' : 'red';
+
+                        const formattedUnrealizedGain = portfolioValues.unrealizedGainLoss >= 0 
+                            ? `+${portfolioValues.unrealizedGainLoss}%` 
+                            : `${portfolioValues.unrealizedGainLoss}%`;
+                        document.getElementById('unrealized-gain').style.color = portfolioValues.unrealizedGainLoss >= 0 ? 'green' : 'red';
+
+                        const formattedRealizedGain = portfolioValues.realizedGainLoss >= 0 
+                            ? `+${portfolioValues.realizedGainLoss}%` 
+                            : `${portfolioValues.realizedGainLoss}%`;
+                        document.getElementById('realized-gain').style.color = portfolioValues.realizedGainLoss >= 0 ? 'green' : 'red';
+
+                        document.getElementById('portfolio-worth').innerText = `${portfolioValues.portfolioWorth} ${selectedFiat} (${portfolioValues.totalSats} sats)`;
+                        document.getElementById('24hrs-change').innerText = formattedPercentageChange;
+                        document.getElementById('unrealized-gain').innerText = formattedUnrealizedGain;
+                        document.getElementById('realized-gain').innerText = formattedRealizedGain;
+                        document.getElementById('average-buy-price').innerText = `${portfolioValues.avgBuyPrice} ${selectedFiat}`;
+                });
+            }
+        });
+    </script>
+
+    <!-- Include noUiSlider CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/nouislider@15.6.0/dist/nouislider.min.css">
+    <!-- Include noUiSlider JS -->
+    <script src="https://unpkg.com/nouislider@15.6.0/dist/nouislider.min.js"></script>
+
+
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let btcChart;
+        let btcData = []; // Holds fetched price data
+        let selectedFiat = "{{ current_user.selected_fiat }}";
+        
+        // Update the price info (current price, 24h change, and visible range change)
+        function updatePriceInfo(data) {
+            const currentPrice = data[data.length - 1].price;
+            const previous24hPrice = data[data.length - 1 - 24]?.price || currentPrice;
+            const change24h = ((currentPrice - previous24hPrice) / previous24hPrice) * 100;
+            const formattedChange24h = change24h >= 0 
+                ? `+${change24h.toFixed(2)}%` 
+                : `${change24h.toFixed(2)}%`;
+                document.getElementById('percentage-change').style.color = change24h >= 0 ? 'green' : 'red';
+            // Update DOM with values
+            document.getElementById('current-price').innerText = `${currentPrice.toFixed(2)} ${selectedFiat}`;
+            document.getElementById('percentage-change').innerText = formattedChange24h;
+        }
+
+        function fetchBTCPrice(timespan) {
+            selectedFiat = document.getElementById("fiat").value;
+            console.log(selectedFiat)
+            const url = `/btc_price/${selectedFiat}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || !data.prices) {
+                        console.error("Invalid data format received", data);
+                        return;
+                    }
+
+                    // Convert API response to usable format
+                    btcData = data.prices.map(point => {
+                        // Convert timestamp to milliseconds and create a date object
+                        const date = new Date(point.time);  // Make sure the timestamp is in milliseconds
+
+                        // Correctly format the date to 'YYYY-MM-DD'
+                        return {
+                            date: date.toISOString().split('T')[0], // ISO format 'YYYY-MM-DD'
+                            price: point.price
+                        };
+                    });
+
+                    // Cache the data (expires after 10 minutes)
+                    localStorage.setItem("btcData", JSON.stringify({ data: btcData, timestamp: Date.now() }));
+
+                    renderChart(btcData); // Update chart with new data
+                    initSlider(); // Initialize slider after data is ready
+                    // Update price info
+                    updatePriceInfo(btcData);
+                })
+                .catch(error => console.error("Error fetching BTC price:", error));
+        }
+
+    
+        // Function to initialize the slider after data is loaded
+        function initSlider() {
+            if (btcData.length === 0) return; // Don't initialize if data is empty
+
+            const slider = document.getElementById("slider");
+
+            // Destroy any existing slider before creating a new one
+            if (slider.noUiSlider) {
+                slider.noUiSlider.destroy();
+            }
+
+            // Ensure btcData is sorted by date (just in case)
+            btcData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            const minDate = new Date(btcData[0].date).getTime();
+            const maxDate = new Date(btcData[btcData.length - 1].date).getTime();
+            let startDate = maxDate - 30 * 24 * 60 * 60 * 1000; // 30 days before latest date
+            if (startDate < minDate) startDate = minDate; // Ensure it's within range
+            // Initialize noUiSlider
+            noUiSlider.create(slider, {
+                start: [startDate, maxDate], // Set last 30 days as default
+                connect: true,
+                range: {
+                    'min': minDate,
+                    'max': maxDate
+                },
+                step: 1000 * 60 * 60 * 24,  // Step is one day
+                format: {
+                    to: (value) => value, // Keep timestamps as numbers
+                    from: (value) => Number(value)
+                }
+            });
+
+            slider.noUiSlider.on('update', function(values) {
+                const [startDate, endDate] = values.map(v => new Date(Number(v)).toISOString().split('T')[0]);
+
+                // Update the visible range text
+                document.getElementById('visibleDateRange').innerText = `Visible Range: ${formatDate(startDate)} - ${formatDate(endDate)}`;
+
+                // Filter data accordingly
+                filterData(startDate, endDate);
+                
+                // Calculate visible range price change
+                calculateVisibleRangeChange(startDate, endDate);
+            });
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(",", "");
+        }
+
+        // Function to calculate visible range price change based on slider range
+        function calculateVisibleRangeChange(startDate, endDate) {
+            // Convert the dates to timestamps
+            const startTimestamp = new Date(startDate).getTime();
+            const endTimestamp = new Date(endDate).getTime();
+
+            // Find the prices at the start and end of the visible range
+            const startPrice = getPriceAtTimestamp(startTimestamp);
+            const endPrice = getPriceAtTimestamp(endTimestamp);
+            if (startPrice !== undefined && endPrice !== undefined) {
+                const visibleRangeChange = ((endPrice - startPrice) / startPrice) * 100;
+
+                // Update the visible range change in the DOM
+                const formattedVisibleRangeChange= visibleRangeChange >= 0 
+                ? `+${visibleRangeChange.toFixed(2)}% *` 
+                : `${visibleRangeChange.toFixed(2)}% *`;
+                document.getElementById('visible-range-change').style.color = visibleRangeChange >= 0 ? 'green' : 'red';
+                document.getElementById('visible-range-change').innerText = formattedVisibleRangeChange;
+            }
+        }
+
+        // Function to get the price at a specific timestamp
+        function getPriceAtTimestamp(timestamp) {
+            // Find the data point closest to the given timestamp
+            for (let i = 0; i < btcData.length; i++) {
+                const dataPoint = btcData[i];
+                const dataTimestamp = new Date(dataPoint.date).getTime();
+
+                // Return the price if the data point matches the timestamp (or is close to it)
+                if (dataTimestamp >= timestamp) {
+                    return dataPoint.price;
+                }
+            }
+            return undefined; // Return undefined if no matching data is found
+        }
+        
+        // Auto-zoom buttons
+        document.getElementById('zoomLastDay').addEventListener('click', () => zoomToRange(1));
+        document.getElementById('zoomLastMonth').addEventListener('click', () => zoomToRange(30));
+        document.getElementById('zoomLast6Months').addEventListener('click', () => zoomToRange(180));
+        document.getElementById('zoomLastYear').addEventListener('click', () => zoomToRange(365));
+
+        // Function to zoom to a specific range (days)
+        function zoomToRange(days) {
+            const slider = document.getElementById("slider");
+            const maxDate = new Date(btcData[btcData.length - 1].date).getTime();
+            const minDate = new Date(btcData[0].date).getTime();
+
+            let startDate = maxDate - days * 24 * 60 * 60 * 1000; // Calculate start date
+            if (startDate < minDate) startDate = minDate; // Ensure within the valid range
+
+            slider.noUiSlider.set([startDate, maxDate]);
+        }
+    
+        function renderChart(filteredData) {
+            if (!filteredData || filteredData.length === 0) return;
+    
+            const labels = filteredData.map(entry => entry.date);
+            const prices = filteredData.map(entry => entry.price);
+            const gainLoss = prices[prices.length - 1] - prices[0];
+            const curveColor = gainLoss > 0 ? "green" : "red";
+    
+            if (btcChart) btcChart.destroy(); // Clear previous chart
+    
+            const ctx = document.getElementById("btcChart").getContext("2d");
+            btcChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `BTC Price (${selectedFiat})`,
+                        data: prices,
+                        borderColor: curveColor,
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 0 // Hide dots
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: { display: false } // Hide specific date labels
+                        },
+                        y: {
+                            ticks: { beginAtZero: false }
+                        }
+                    }
+                }
+            });
+        }
+    
+        function filterData(startDate, endDate) {
+            const filteredData = btcData.filter(entry => {
+                const entryDate = new Date(entry.date);
+                return entryDate >= new Date(startDate) && entryDate <= new Date(endDate);
+            });
+            renderChart(filteredData);
+            // Update price info
+            updatePriceInfo(btcData);
+        }
+        function startChartCalculation() {
+            // Load cached data if available and valid
+            const cachedData = JSON.parse(localStorage.getItem("btcData"));
+
+            if (cachedData && (Date.now() - cachedData.timestamp < 10 * 60 * 1000)) {
+                btcData = cachedData.data;
+                renderChart(btcData);
+                initSlider();
+                // Update price info
+                updatePriceInfo(btcData);
+            } else {
+                fetchBTCPrice("all");
+            }
+        }
+        startChartCalculation();
+    
+        function calculatePortfolio(transactions) {
+            const currentBTCPrice = btcData[btcData.length - 1].price;
+            const previous24hPrice = btcData[btcData.length - 1 - 24]?.price || currentPrice;
+            const change24h = ((currentBTCPrice - previous24hPrice) / previous24hPrice) * 100;
+            let totalSatsHeld = 0;
+            let totalSatsBought = 0;
+            let totalFiatInvested = 0;
+            let realizedGainLoss = 0;
+
+            transactions.sort((a, b) => new Date(a.datetime) - new Date(b.datetime)); // Sort by date
+
+            transactions.forEach(tx => {
+                
+                if (tx.type === "buy" || tx.type === "earn") {
+                    totalSatsHeld += tx.sats;
+                    if (tx.type === "buy") {
+                        totalFiatInvested += tx.fiat_amount;
+                        totalSatsBought += tx.sats;
+                    }
+                } else if (tx.type === "sell") {
+                    let satsToSell = tx.sats;
+                    let sellFiatValue = tx.fiat_amount;
+
+                    // Calculate average buy price
+                    const averageSatPrice = totalFiatInvested / totalSatsBought
+
+                    // Calculate realized gain/loss
+                    realizedGainLoss += (sellFiatValue - averageSatPrice * satsToSell);
+
+                    totalSatsHeld -= tx.sats;
+                } else if (tx.type === "spend") {
+                    totalSatsHeld -= tx.sats; // Spending reduces holdings but doesn't count for FIFO
+                }
+            });
+
+            // **Portfolio Worth (Current Value)**
+            let portfolioWorth = totalSatsHeld / 100000000 * currentBTCPrice;
+
+            // **Unrealized Gain/Loss Calculation**:
+            const averageSatsPerFiat = totalSatsBought / totalFiatInvested
+            const currentSatsPerFiat = totalSatsHeld / portfolioWorth
+
+            let unrealizedGainLoss = (averageSatsPerFiat / currentSatsPerFiat - 1) * 100
+
+            // **Average Buy Price (Weighted)**
+            let avgBuyPrice = totalFiatInvested / totalSatsBought * 100000000 || 0; // Avoid division by zero
+
+            return {
+                portfolioWorth: portfolioWorth.toFixed(2),
+                totalSats: totalSatsHeld,
+                change24h: change24h,
+                realizedGainLoss: realizedGainLoss.toFixed(2),
+                unrealizedGainLoss: unrealizedGainLoss.toFixed(2),
+                avgBuyPrice: avgBuyPrice.toFixed(2)
+            };
+        }
+    
+    </script>
+
+    <!-- Wallets & Transactions Layout -->
+    <div class="row mt-4" style="margin-bottom: 100px;">
+    <!-- Wallets Column-->
+    <div class="col-md-4">
+        <h4>Wallets</h4>
+        
+        <!-- Add Wallet Form -->
+        <form method="POST" action="{{ url_for('main.add_wallet') }}" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="wallet_name" class="form-control" placeholder="New Wallet Name" required>
+                <button type="submit" class="btn btn-success">+</button>
+            </div>
+        </form>
+
+        <!-- Wallet List -->
+        <ul class="list-group">
+            {% for wallet in wallets %}
+            <li class="list-group-item d-flex justify-content-between align-items-center wallet-item"
+                data-wallet-id="{{ wallet.id }}" style="cursor: pointer;">
+                {{ wallet.wallet_name }}
+                <form action="{{ url_for('main.delete_wallet', wallet_id=wallet.id) }}" method="POST" onsubmit="return confirm('Delete this wallet?');">
+                    <button type="submit" class="btn btn-danger btn-sm">X</button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+
+    </div>
+
+        <!-- Transactions Column-->
+        <div class="col-md-8 table-container">
+            <br>
+            <br>
+            <h4>Transactions</h4>
+            <a href="{{ url_for('main.new_transaction') }}" class="btn btn-success mb-3">+ Add Transaction</a>
+            <a style="margin-left: 20 px;" href="{{ url_for('main.tax_report') }}" class="btn btn-success mb-3">Generate Tax Report</a>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Sats</th>
+                        <th>Value in {{ selected_fiat }}</th>
+                        <th>Sats per {{ selected_fiat }}</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-table-body">
+                    <!-- Transactions will be inserted here -->
+                </tbody>
+            </table>            
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".wallet-item").forEach(wallet => {
+            wallet.addEventListener("click", function () {
+                const walletId = this.dataset.walletId;
+                fetchTransactions(walletId);
+            });
+        });
+    });
+    
+    function fetchTransactions(walletId) {
+        fetch(`/transactions/${walletId}`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById("transactions-table-body");
+                tableBody.innerHTML = ""; // Clear current transactions
+    
+                if (data.length === 0) {
+                    tableBody.innerHTML = "<tr><td colspan='7' class='text-center'>No transactions found</td></tr>";
+                    return;
+                }
+    
+                data.forEach(transaction => {
+                    const row = `
+                        <tr>
+                            <td>${formatDate(transaction.date)}</td>
+                            <td>${formatTransactionType(transaction.type)}</td>
+                            <td>${transaction.amount}</td>
+                            <td>${transaction.fiat_amount} ${selectedFiat}</td>
+                            <td>${transaction.sats_per_fiat}</td>
+                            <td>${transaction.notes}</td>
+                            <td>
+                                <a href="/edit_transaction/${transaction.id}" class="btn btn-warning btn-sm">Edit</a>
+                                <form action="/delete_transaction/${transaction.id}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?');">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            })
+            .catch(error => console.error("Error fetching transactions:", error));
+    }
+
+    function formatTransactionType(type) {
+        const typeMapping = {
+            'buy': 'Buy',
+            'sell': 'Sale',
+            'spend': 'Expense',
+            'earn': 'Income'
+        };
+        
+        return typeMapping[type.toLowerCase()] || type; // Default to original if not found
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        const options = { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' };
+        return date.toLocaleString('en-GB', options).replace(',', '').replace(' ', '-'); // Example: 01-Jan-2025 12:45
+    }
+</script>
+    
+{% endblock %}

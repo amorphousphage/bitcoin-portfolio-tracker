@@ -1,0 +1,33 @@
+services:
+  bitcointracker_db:
+    image: mysql:8
+    container_name: bitcointracker_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: bitcointracker
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+    volumes:
+      - mysql_data:/var/lib/mysql
+  
+  bitcointracker:
+    build: .
+    container_name: bitcointracker
+    ports:
+      - "2222:2222"
+    depends_on:
+      bitcointracker_db:
+        condition: service_healthy
+    environment:
+      - FLASK_APP=run.py
+      - FLASK_ENV=development
+    volumes:
+      - .:/app
+
+volumes:
+  mysql_data:

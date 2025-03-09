@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h2>Create New Transaction</h2>
+
+        <form method="POST" action="{{ url_for('main.new_transaction') }}">
+            <!-- Select Wallet -->
+            <div class="mb-3">
+                <label for="wallet" class="form-label">Select Wallet:</label>
+                <select id="wallet" name="wallet" class="form-control">
+                    <option value="">Select a wallet</option>
+                    {% for wallet in wallets %}
+                        <option value="{{ wallet.id }}">{{ wallet.wallet_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Date and Time Picker -->
+            <div class="mb-3">
+                <label for="date_time" class="form-label">Transaction Date and Time:</label>
+                <input type="datetime-local" id="date_time" name="date_time" class="form-control" required>
+            </div>
+            
+            <!-- Transaction Type -->
+            <div class="mb-3">
+                <label for="type" class="form-label">Transaction Type:</label>
+                <select id="type" name="type" class="form-control">
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                    <option value="earn">Earn</option>
+                    <option value="spend">Spend</option>
+                </select>
+                <p style="font-size: 12px;"> In case you wish to transfer sats from one wallet to another, record two transactions:</p>
+                <p style="font-size: 12px; margin-top: -40 px;"> One as "Spend" and one as "Earn". Both transactions should have "Transfer" written in the notes to be excluded from tax calculations.</p> 
+            </div>
+
+            <!-- Amount in Sats -->
+            <div class="mb-3">
+                <label for="sats" class="form-label">Amount (Sats):</label>
+                <input type="number" id="sats" name="sats" class="form-control" required>
+            </div>
+
+            <!-- Amount in Fiat -->
+            <div class="mb-3">
+                <label for="fiat_amount" class="form-label">Amount (Fiat):</label>
+                <input type="number" step="0.01" id="fiat_amount" name="fiat_amount" class="form-control" required>
+            </div>
+
+            <!-- Notes (optional) -->
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes:</label>
+                <textarea id="notes" name="notes" class="form-control" rows="3"></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary">Create Transaction</button>
+        </form>
+    </div>
+{% endblock %}

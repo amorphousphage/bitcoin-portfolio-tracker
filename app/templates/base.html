@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Portfolio Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"> <!-- Bootstrap for general styling -->
+    <style>
+        /* Dark navy blue background */
+        body {
+            background-color: #0a0a23;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    
+        /* Content container with semi-transparent effect */
+        .content-wrapper {
+            background: rgba(20, 20, 50, 0.9); /* Slightly lighter navy blue */
+            border: 2px solid #ffd700; /* Bitcoin-orange border */
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 1200px; /* Adjust as needed */
+            margin: 40px auto; /* Centered with spacing */
+            box-shadow: 0px 0px 20px rgba(255, 215, 0, 0.2); /* Subtle glow effect */
+        }
+    
+        /* Optional: Style headings */
+        h1, h2, h3 {
+            color: #ffd700;
+            text-align: center;
+        }
+    
+        /* Optional: Style links */
+        a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+    
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .flash-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .flash-success {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .flash-error {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .flash-warning {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        #chartContainer {
+            width: 100%;
+            height: 300px;
+            max-height: 350px;
+            position: relative;
+        }
+
+        #sliderContainer {
+            margin-top: 200px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #slider {
+            width: 90%; /* Adjust width */
+        }
+        #zoomButtonContainer {
+            margin-top: 10px;
+            margin-bottom: 30px;
+        }
+
+        .table.table-striped tbody tr td,
+        .table.table-striped thead tr th {
+            color: white !important;
+        }
+
+        .table-container {
+        overflow-x: auto; /* Enables horizontal scrolling on small screens */
+        width: 100%;
+        }
+        .table {
+            width: 100%; /* Ensures table takes full width */
+        }
+
+        .list-group {
+        background: rgba(20, 20, 50, 0.9); /* Same as wrapper */
+        border-radius: 10px;
+        }
+
+        .form-control,
+        .list-group-item {
+            background: rgba(20, 20, 50, 0.9) !important; /* Override Bootstrap */
+            color: white !important; /* White text for readability */
+            border: 1px solid rgba(255, 215, 0, 0.5); /* Subtle Bitcoin-orange border */
+        }
+        
+        .form-control::placeholder {
+            color: rgba(255, 215, 0, 0.5) !important; /* Lighter Bitcoin-orange placeholder text */
+        }
+
+        .list-group-item:hover {
+            background: rgba(30, 30, 70, 0.9); /* Slightly lighter on hover */
+        }
+
+        /* Make the slider track navy blue */
+        .noUi-connect {
+            background: #ffd700 !important; /* Bitcoin-orange between handles */
+        }
+
+        /* Make the slider handles (buttons) navy blue */
+        .noUi-handle {
+            background: #0a0a23 !important; /* Dark navy blue */
+            border: 2px solid #ffd700 !important; /* Bitcoin-orange border */
+            border-radius: 50%;
+        }
+
+        /* Optional: When dragging, slightly lighten the handle */
+        .noUi-handle:hover, .noUi-handle:active {
+            background: #141432 !important; /* Slightly lighter navy */
+        }
+
+        .noUi-base {
+            background: #0a0a23 !important; /* Matches the base */
+        }
+
+
+    </style>
+</head>
+<body>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <div class="content-wrapper">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">
+                        <i class="fas fa-info-circle"></i> {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Content Section -->
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+</body>
+</html>

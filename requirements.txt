@@ -1,0 +1,10 @@
+Flask
+Flask-Login
+Flask-Babel
+Flask-SQLAlchemy
+Flask-Mail
+requests
+PyMySQL
+Werkzeug
+cryptography
+weasyprint

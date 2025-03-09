@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Generate Bitcoin Tax Report</h1>
+<style>
+    table tr {
+        margin-bottom: 20px; /* This will add space between rows */
+    }
+    table td {
+        padding: 10px; /* Optional: adds padding inside each cell */
+    }
+</style>
+
+<form method="POST">
+    <table style="width: 100%; table-layout: fixed; border: none">
+        <tr>
+            <td><label>Select Tax Year:</label></td>
+            <td>
+                <select name="tax_year" style="width: 100%;">
+                    {% for year in available_years %}
+                        <option value="{{ year }}">{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><label>Select Language of the Tax Report:</label></td>
+            <td>
+                <select name="language">
+                    <option value="en">English</option>
+                    <option value="de">German</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="it">Italian</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><label>Name:</label></td>
+            <td><input type="text" name="name" required style="width: 100%;"></td>
+        </tr>
+        <tr>
+            <td><label>Address:</label></td>
+            <td><textarea name="address" rows="3" required style="width: 100%;"></textarea></td>
+        </tr>
+        <tr>
+            <td><label>Administration Cost ({{ current_user.selected_fiat }}):</label></td>
+            <td><input type="number" name="admin_cost" step="0.01" style="width: 100%;"></td>
+        </tr>
+        <tr>
+            <td><label>Administration Cost Description:</label></td>
+            <td><textarea name="admin_desc" rows="5" style="width: 100%;"></textarea></td>
+        </tr>
+    </table>
+    
+    <button type="submit" class="btn btn-primary mt-2">Generate PDF</button>
+</form>
+
+{% endblock %}

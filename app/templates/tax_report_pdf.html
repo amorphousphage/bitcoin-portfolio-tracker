@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ translations["Bitcoin Tax Report"] }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        h1 { text-align: center; }
+        .columns { display: flex; justify-content: space-between; border: none;}
+        .column { width: 48%; padding: 10px; border: none; }
+    </style>
+</head>
+<body>
+    <h2 style="text-align: center;">{{ translations["Bitcoin Tax Report for %(year)s"] % {"year": tax_year} }}</h2>
+    <p style="font-size: 8px; margin-top: -20px; text-align: center;">{{ translations["This tax report was generated with https://github.com/amorphousphage/bitcoin-portfolio-tracker"] }}</p>
+    <div style="text-align: right;">
+        <p><strong>{{ name }}</strong></p>
+        <p style="font-size: 14px; margin-top: -10px;">{{ address.replace("\n", "<br>") | safe }}</p>
+    </div>
+
+    <div class="columns">
+        <div class="column">
+            <h4>{{ translations["01-Jan-%(year)s"] % {"year": tax_year} }}</h4>
+            <p>{{ translations["Satoshis Owned"] }}: {{ report_data.sats_start }} ({{ report_data.sats_start / one_eight }}&nbsp;BTC)</p>
+            <p>{{ translations["BTC Price"] }}: {{ report_data.btc_price_start }}&nbsp;{{ fiat_currency }}</p>
+            <p>{{ translations["Portfolio Worth"] }}: {{ report_data.portfolio_start }}&nbsp;{{ fiat_currency }}</p>
+            {% if report_data.first_year: %}
+                <p style="font-size: 10px;">{{ translations["Unrealized Gain/Loss might exists even though Portfolio Worth was 0 BTC on 01-Jan, because this year was the first of buying BTC. Gain/Loss is calculated based on all buys throughout the year."] }}</p>
+            {% endif %}
+        </div>
+        <div class="column">
+            <h4>{{ translations["31-Dec-%(year)s"] % {"year": tax_year} }}</h4>
+            <p>{{ translations["Satoshis Owned"] }}: {{ report_data.sats_end }} ({{ report_data.sats_end / one_eight }}&nbsp;BTC)</p>
+            <p>{{ translations["BTC Price"] }}: {{ report_data.btc_price_end }}&nbsp;{{ fiat_currency }}</p>
+            <p><strong>{{ translations["Portfolio Worth"] }}: {{ report_data.portfolio_end }}&nbsp;{{ fiat_currency }}</strong></p>
+        </div>
+    </div>
+    <br>
+    <br>
+    <p>{{ translations["BTC bought"] }}: {{ report_data.sats_bought / one_eight }}&nbsp;BTC</p>
+    <p>{{ translations["BTC sold"] }}: {{ report_data.sats_sold / one_eight }}&nbsp;BTC</p>
+    <p>{{ translations["BTC incoming payments"] }}: {{ report_data.sats_earned / one_eight }}&nbsp;BTC</p>
+    <p>{{ translations["BTC outgoing payments"] }}: {{ report_data.sats_spent / one_eight }}&nbsp;BTC</p>
+    <br>
+    <p>{{ translations["Unrealized Profit or Loss"] }}:</p>
+    <ul>
+        <li>{{ translations["In Percent"] }}: {{ report_data.unrealized_gain_percent }}&nbsp;%</li>
+        <li>{{ translations["In %(currency)s"] % {"currency": fiat_currency} }}: {{ report_data.unrealized_gain_fiat }}&nbsp;{{ fiat_currency }}</li>
+    </ul>
+    <br>
+    <br>
+    {% if admin_cost %}
+        <p style="font-size: 16px;">{{ translations["Administrative Expenses"] }}: {{ admin_cost }}&nbsp;{{ fiat_currency }}</p>
+        {% if admin_desc %}
+            <p style="font-size: 14px;"><em>{{ translations["Description of Administrative Expenses"] }}:</em> {{ admin_desc.replace("\n", "<br>") | safe }}</p>
+        {% endif %}
+    {% endif %}
+    <br>
+    <h3>{{ translations["Net Profit or Loss"] }}: {{ report_data.unrealized_gain_fiat - admin_cost }}&nbsp;{{ fiat_currency }}</h3>
+    <br>
+    <br>
+    <p style="font-size: 10px; text-align: right;">{{ translations["This report was generated on"] }} {{ current_date }}</p>
+</body>
+</html>
