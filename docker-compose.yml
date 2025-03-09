@@ -17,6 +17,7 @@ services:
   
   bitcointracker:
     build: .
+    restart: always
     container_name: bitcointracker
     ports:
       - "2222:2222"
@@ -25,7 +26,7 @@ services:
         condition: service_healthy
     environment:
       - FLASK_APP=run.py
-      - FLASK_ENV=development
+      - FLASK_ENV=production
     volumes:
       - .:/app
 

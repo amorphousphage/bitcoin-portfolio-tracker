@@ -8,3 +8,4 @@ PyMySQL
 Werkzeug
 cryptography
 weasyprint
+gunicorn

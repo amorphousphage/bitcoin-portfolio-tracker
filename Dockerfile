@@ -25,3 +25,4 @@ EXPOSE 2222
 
 # Start the Flask application
 CMD ["flask", "run", "--host=0.0.0.0", "--port=2222"]
+CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:2222", "run:app"]
