@@ -30,7 +30,19 @@ Ensure you have the following installed on your system:
    ```sh
    sudo docker compose up -d
    ```
-3. Access the web application in your browser at:
+3. To initially populate the database holding the historical bitcoin data run the following command on the container's host
+   ```sh
+   python3 /path/to/fetch_historical_data.py
+   ```
+4. Schedule a crontab for the hourly update
+   ```sh
+   crontab -e
+   ```
+   ```sh
+   # Update Bitcoin Tracker price hourly
+   5 * * * * docker exec <bitcointracker_container_name> python3 hourly_btc_price_update.py >> /path/to/Bitcoin_Tracker/hourly_update.log 2>&1
+   ```
+5. Access the web application in your browser at:
    ```
    http://localhost:2222
    ```
