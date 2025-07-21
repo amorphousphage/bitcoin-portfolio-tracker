@@ -29,6 +29,7 @@
     <div class="container mt-4" id="chartContainer">
         <div id="price-info">
             <p><strong>Current Price (1 BTC):</strong> <span id="current-price"></span></p>
+            <p><strong>All-Time High: </strong><span id="all-time-high"></span> (current price is <span id="ath-diff"></span> away from this.)</p>
             <p><strong>24h Change:</strong> <span id="percentage-change"></span></p>
             <p><strong>Visible Range Change:</strong> <span id="visible-range-change"></span></p>
             <p><small>* time is considered from 1 am to 1 am of the start and end dates</small></p>
@@ -42,9 +43,13 @@
     </div>
     <div id ="zoomButtonContainer">
         <button id="zoomLastDay" class="btn btn-primary mt-2">Last Day</button>
+        <button id="zoomLastWeek" class="btn btn-primary mt-2">Last Week</button>
         <button id="zoomLastMonth" class="btn btn-primary mt-2">Last 30 Days</button>
+        <button id="zoomLast3Months" class="btn btn-primary mt-2">Last 3 Months</button>
         <button id="zoomLast6Months" class="btn btn-primary mt-2">Last 6 Months</button>
         <button id="zoomLastYear" class="btn btn-primary mt-2">Last Year</button>
+        <button id="zoomYtd" class="btn btn-primary mt-2">YTD</button>
+        <button id="zoomAll" class="btn btn-primary mt-2">All Time</button>
     </div>
 
     <!-- Portfolio Overview Section (Initially Hidden) -->
@@ -75,8 +80,6 @@
             // Clear the btcData array in memory
             btcData = [];
 
-            // You can then re-fetch the data
-            //fetchBTCPrice("all");
         });
 
 
@@ -135,6 +138,16 @@
         // Update the price info (current price, 24h change, and visible range change)
         function updatePriceInfo(data) {
             const currentPrice = data[data.length - 1].price;
+            const maxPrice = Math.max(...data.map(d => d.price));
+            const changeFromATH = ((currentPrice - maxPrice) / maxPrice) * 100;
+            const formattedChangeFromATH = changeFromATH >= 0
+                ? `+${changeFromATH.toFixed(2)}%`
+                : `${changeFromATH.toFixed(2)}%`;
+
+            const athDiffEl = document.getElementById('ath-diff');
+            athDiffEl.innerText = formattedChangeFromATH;
+            athDiffEl.style.color = changeFromATH >= 0 ? 'green' : 'red';
+
             const previous24hPrice = data[data.length - 1 - 24]?.price || currentPrice;
             const change24h = ((currentPrice - previous24hPrice) / previous24hPrice) * 100;
             const formattedChange24h = change24h >= 0 
@@ -143,6 +156,7 @@
                 document.getElementById('percentage-change').style.color = change24h >= 0 ? 'green' : 'red';
             // Update DOM with values
             document.getElementById('current-price').innerText = `${currentPrice.toFixed(2)} ${selectedFiat}`;
+            document.getElementById('all-time-high').innerText = `${maxPrice.toFixed(2)} ${selectedFiat}`;
             document.getElementById('percentage-change').innerText = formattedChange24h;
         }
 
@@ -273,9 +287,22 @@
         
         // Auto-zoom buttons
         document.getElementById('zoomLastDay').addEventListener('click', () => zoomToRange(1));
+        document.getElementById('zoomLastWeek').addEventListener('click', () => zoomToRange(7));
         document.getElementById('zoomLastMonth').addEventListener('click', () => zoomToRange(30));
+        document.getElementById('zoomLast3Months').addEventListener('click', () => zoomToRange(90));
         document.getElementById('zoomLast6Months').addEventListener('click', () => zoomToRange(180));
         document.getElementById('zoomLastYear').addEventListener('click', () => zoomToRange(365));
+        document.getElementById('zoomYtd').addEventListener('click', () => zoomToRange(getYtdDays()));
+        document.getElementById('zoomAll').addEventListener('click', () => zoomToRange(999999));
+        
+        // Function to calculate the days passed in year-to-date
+        function getYtdDays() {
+            const now = new Date();
+            const jan1 = new Date(now.getFullYear(), 0, 1);
+            const diffInMs = now - jan1;
+            const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+            return diffInDays || 1;
+        }
 
         // Function to zoom to a specific range (days)
         function zoomToRange(days) {
@@ -318,7 +345,7 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            ticks: { display: false } // Hide specific date labels
+                            ticks: { display: true }
                         },
                         y: {
                             ticks: { beginAtZero: false }

@@ -2,8 +2,9 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user, login_user, logout_user, login_manager
 from flask_mail import Message
 from flask_babel import get_locale
+from sqlalchemy import text
 from app import db, mail
-from app.models import Wallet, Transaction, User
+from app.models import Wallet, Transaction, User, BTCPrice
 from app.utils import generate_pdf, calculate_tax_report_data, get_btc_price
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -182,38 +183,29 @@ def delete_wallet(wallet_id):
 @bp.route("/btc_price/<currency>")
 @login_required
 def btc_price(currency):
-    # Define the endpoint for CoinGecko (Hourly for last 365 days)
-    api_url_last_year = f"https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency={currency}&days=90"
-    
-    # Define the endpoint for CryptoCompare (Daily for older data)
-    now = datetime.utcnow()
-    date_cutoff = now - timedelta(days=90)
-    api_url_old_data = f"https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym={currency}&limit=2000&toTs={int(date_cutoff.timestamp())}"
-    
+    supported_currencies = {
+        "usd": BTCPrice.price_usd,
+        "eur": BTCPrice.price_eur,
+        "gbp": BTCPrice.price_gbp,
+        "chf": BTCPrice.price_chf,
+    }
+    price_column = supported_currencies.get(currency.lower())
+    if not price_column:
+        return jsonify({"error": "Unsupported currency"}), 400
+
     try:
-        # Fetch CoinGecko hourly data for the last year
-        response_last_year = requests.get(api_url_last_year)
-        data_last_year = response_last_year.json()
-        
-        # Fetch CryptoCompare daily data for older data
-        response_old_data = requests.get(api_url_old_data)
-        data_old = response_old_data.json()
-        
-        # Prepare the chart data list
-        chart_data = []
-        
-        # Process CoinGecko hourly data
-        for item in data_last_year['prices']:
-            timestamp, price = item
-            chart_data.append({"time": timestamp, "price": price})
-        
-        # Process CryptoCompare daily data
-        for item in data_old['Data']['Data']:
-            timestamp, price = item["time"], item["close"]
-            chart_data.append({"time": timestamp * 1000, "price": price}) # Convert time to milliseconds (Coingecko data is that already)
-        
-        # Sort the combined data by time (to ensure it's in chronological order)
-        chart_data.sort(key=lambda x: x['time'])
+        # Query all rows with non-null price for requested currency, ordered by timestamp
+        results = (
+            db.session.query(BTCPrice.timestamp, price_column.label("price"))
+            .filter(price_column.isnot(None))
+            .order_by(BTCPrice.timestamp.asc())
+            .all()
+        )
+
+        chart_data = [
+            {"time": timestamp * 1000, "price": price}  # convert to ms
+            for timestamp, price in results
+        ]
 
         return jsonify({"prices": chart_data})
 

@@ -70,3 +70,14 @@ class Transaction(db.Model):
             "sats_per_fiat": self.sats_per_fiat,
             "notes": self.notes,
         }
+
+class BTCPrice(db.Model):
+    __tablename__ = 'btc_prices'
+    timestamp = db.Column(db.Integer, primary_key=True)  # Unix timestamp (hourly)
+    price_usd = db.Column(db.Numeric(18, 8), nullable=False)
+    price_eur = db.Column(db.Numeric(18, 8), nullable=False)
+    price_gbp = db.Column(db.Numeric(18, 8), nullable=False)
+    price_chf = db.Column(db.Numeric(18, 8), nullable=False)
+
+    def __repr__(self):
+        return f"<BTCPrice {self.timestamp} USD: {self.price_usd}>"

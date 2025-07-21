@@ -9,3 +9,6 @@ Werkzeug
 cryptography
 weasyprint
 gunicorn
+yfinance
+sqlalchemy
+pandas
