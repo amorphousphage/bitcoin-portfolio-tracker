@@ -30,7 +30,7 @@ Ensure you have the following installed on your system:
    ```sh
    sudo docker compose up -d
    ```
-3. To initially populate the database holding the historical bitcoin data run the following command on the container's host
+3. To initially populate the database holding the historical bitcoin data run the following command on the container's host or inside the container
    ```sh
    python3 /path/to/fetch_historical_data.py
    ```
